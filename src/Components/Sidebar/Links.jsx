@@ -66,25 +66,25 @@ export const Links = [
     //     path: '/councils',
     // },
     {
-        label: 'اضافة ناخب',
+        label: 'الناخبين',
         icon: <AddIcon className="icon-edit" />,
-        path: '/add-voter',
+        path: '/all-voters',
     },
-    {
-        label: 'اضافة قسم الي دائرة',
-        icon: <AddIcon className="icon-edit" />,
-        path: '/add-section',
-    },
-    {
-        label: 'اضافة مقر انتخابي',
-        icon: <AddIcon className="icon-edit" />,
-        path: '/add-electoral-headquarters',
-    },
-    {
-        label: 'اضافة مقر الي دائرة',
-        icon: <AddIcon className="icon-edit" />,
-        path: '/add-headquarters',
-    },
+    // {
+    //     label: 'اضافة قسم الي دائرة',
+    //     icon: <AddIcon className="icon-edit" />,
+    //     path: '/add-section',
+    // },
+    // {
+    //     label: 'اضافة مقر انتخابي',
+    //     icon: <AddIcon className="icon-edit" />,
+    //     path: '/add-electoral-headquarters',
+    // },
+    // {
+    //     label: 'اضافة مقر الي دائرة',
+    //     icon: <AddIcon className="icon-edit" />,
+    //     path: '/add-headquarters',
+    // },
 
     // {
     //     label: 'التقارير',

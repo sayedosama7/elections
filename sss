@@ -5,20 +5,29 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import IconButton from '@mui/material/IconButton';
 import CloseIcon from '@mui/icons-material/Close';
-import { useState } from 'react';
-import CandidatesList from './CadidatesList';
+import { useCallback, useEffect, useState } from 'react';
+// import CandidatesList from './CadidatesList';
 import { Loading } from '../../Components/Loading';
 import axios from 'axios';
-import { baseURL, ELECTORAL_DISTRIC, GOVERNATE } from '../../Components/Api';
-import { useGetCanditatesQuery } from '../../store/FetchCanditate';
+import { baseURL, CANDITATES, ELECTORAL_DISTRIC, GOVERNATE, IMG_URL } from '../../Components/Api';
+// import { useGetCanditatesQuery } from '../../store/FetchCanditate';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import Paper from '@mui/material/Paper';
 
 const AllCandidates = () => {
     const [loading, setLoading] = useState(false);
     const [open, setOpen] = useState(false);
     const [governate, setGovernate] = useState([]);
     const [electorals, setElectorals] = useState([]);
+    const [candidates, setCandidates] = useState([]);
     const [govId, setGovId] = useState('');
     const [errors, setErrors] = useState(false);
+    const [electoralId, setElectoralId] = useState('');
     const [candidateData, setCandidateData] = useState({
         name: '',
         canditateNickname: '',
@@ -53,13 +62,13 @@ const AllCandidates = () => {
         }
     };
 
-    const fetchElectoral = async govId => {
-        if (!govId) return;
+    const fetchElectoral = async selectedGovId => {
         try {
             setLoading(true);
             const token = localStorage.getItem('token');
-            const response = await axios.get(`${baseURL}/${ELECTORAL_DISTRIC}?govId=${govId}`, {
+            const response = await axios.get(`${baseURL}/${ELECTORAL_DISTRIC}`, {
                 headers: { Authorization: `Bearer ${token}` },
+                params: { govId: selectedGovId },
             });
             setElectorals(response.data.obj);
         } catch (error) {
@@ -149,8 +158,17 @@ const AllCandidates = () => {
         });
     };
 
-    const { isLoading, refetch } = useGetCanditatesQuery();
-    
+    const handleGovIdChange = async event => {
+        const selectedGovId = event.target.value;
+        setGovId(selectedGovId);
+        setElectoralId('');
+        if (selectedGovId) {
+            await fetchElectoral(selectedGovId);
+        }
+    };
+
+    // const { isLoading, refetch } = useGetCanditatesQuery();
+
     const handleSaveCandidate = async () => {
         if (!validateForm()) {
             return;
@@ -188,7 +206,8 @@ const AllCandidates = () => {
             });
 
             console.log('Candidate added successfully:', response.data);
-            refetch();
+            // refetch();
+            await FetchCanditate();
             handleClose();
         } catch (error) {
             console.error('Error adding candidate:', error);
@@ -198,22 +217,111 @@ const AllCandidates = () => {
         }
     };
 
-    const handleGovIdChange = event => {
-        const selectedGovId = event.target.value;
-        setGovId(selectedGovId);
-        if (selectedGovId) {
-            fetchElectoral(selectedGovId);
+    const handleElectoralIdChange = async event => {
+        const selectedElectoralId = event.target.value;
+        setElectoralId(selectedElectoralId);
+
+        try {
+            setLoading(true);
+            const token = localStorage.getItem('token');
+            const response = await axios.get(`${baseURL}/${CANDITATES}`, {
+                headers: { Authorization: `Bearer ${token}` },
+                params: { electoralId: selectedElectoralId },
+            });
+            setCandidates(response.data.obj);
+            console.log('canditate', response.data.obj);
+        } catch (error) {
+            console.error('Error fetching filtered data:', error);
+        } finally {
+            setLoading(false);
         }
     };
+
+    const FetchCanditate = useCallback(async () => {
+        const params = {
+            govId: govId || undefined,
+            electoralId: electoralId || undefined,
+        };
+        try {
+            setLoading(true);
+            const token = localStorage.getItem('token');
+            const response = await axios.get(`${baseURL}/${CANDITATES}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+                params,
+            });
+            setCandidates(response.data.obj);
+            console.log('CANDITATES', response.data.obj);
+        } catch (error) {
+            console.error('Error fetching data:', error);
+        } finally {
+            setLoading(false);
+        }
+    }, [electoralId, govId]);
+
+    useEffect(() => {
+        FetchCanditate();
+    }, [FetchCanditate]);
 
     const handleClickOpen = () => setOpen(true);
     const handleClose = () => setOpen(false);
 
+    const type = {
+        1: 'ذكر',
+        2: 'انثي',
+    };
+
     return (
         <div>
             <div className="box-container">
-                {isLoading && <Loading />}
-                
+                {loading && <Loading />}
+                <div>
+                    <form action="">
+                        <div className="container">
+                            <div className="row">
+                                {/* المحافظة */}
+                                <div className="col-md-3 mb-2">
+                                    <label htmlFor="GovId" className="d-flex mb-1">
+                                        المحافظة
+                                    </label>
+                                    <select
+                                        className="form-select"
+                                        onChange={handleGovIdChange}
+                                        onClick={fetchGovernate}
+                                        value={govId}
+                                    >
+                                        <option value="">اختر المحافظة</option>
+                                        {governate.map(gov => (
+                                            <option key={gov.id} value={gov.id}>
+                                                {gov.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                                {/* الدائرة الانتخابية */}
+                                <div className="col-md-3 mb-2">
+                                    <label htmlFor="ElectoralId" className="d-flex mb-1">
+                                        الدائرة الانتخابية
+                                    </label>
+                                    <select
+                                        className="form-select"
+                                        onChange={handleElectoralIdChange}
+                                        value={electoralId}
+                                        disabled={!govId}
+                                    >
+                                        <option value="">اختر الدائرة الانتخابية</option>
+                                        {electorals.map(electoral => (
+                                            <option key={electoral.id} value={electoral.id}>
+                                                {electoral.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
                 <Box>
                     <div className="d-flex justify-content-between align-items-center">
                         <h2 className="">المرشحين</h2>
@@ -223,7 +331,123 @@ const AllCandidates = () => {
                             </button>
                         </div>
                     </div>
-                    <CandidatesList />
+
+                    <TableContainer component={Paper}>
+                        <Table sx={{ minWidth: 650 }} aria-label="simple table">
+                            <TableHead className="table-head-style">
+                                <TableRow>
+                                    <TableCell className="table-row">صورة المرشح</TableCell>
+                                    <TableCell className="table-row">اسم المرشح</TableCell>
+                                    <TableCell className="table-row">اسم الشهرة</TableCell>
+                                    <TableCell className="table-row">اسم الحزب</TableCell>
+                                    <TableCell className="table-row">اسم المجلس</TableCell>
+                                    <TableCell className="table-row">الدائرة الانتخابية</TableCell>
+                                    <TableCell className="table-row">سنة الانتخاب</TableCell>
+                                    <TableCell className="table-row">السن</TableCell>
+                                    <TableCell className="table-row">تاريخ الميلاد</TableCell>
+                                    <TableCell className="table-row">الرقم القومي</TableCell>
+                                    <TableCell className="table-row">النوع</TableCell>
+                                    <TableCell className="table-row">رقم الهاتف</TableCell>
+                                    <TableCell className="table-row">الايميل</TableCell>
+                                    <TableCell className="table-row">المؤهل الوظيفي</TableCell>
+                                    {/* <TableCell className="table-row">الوظيفة الحالية</TableCell> */}
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                {candidates.length > 0 ? (
+                                    candidates.map(canditate => (
+                                        <TableRow key={canditate.id}>
+                                            <TableCell className="table-content">
+                                                {canditate.imageUrl ? (
+                                                    <img
+                                                        style={{
+                                                            width: '50px',
+                                                            height: '50px',
+                                                            objectFit: 'cover',
+                                                            borderRadius: '50%',
+                                                        }}
+                                                        src={`${IMG_URL}${canditate.imageUrl}`}
+                                                        alt={canditate.name || 'canditate-image'}
+                                                    />
+                                                ) : (
+                                                    <span
+                                                        style={{ color: 'gray', fontSize: '16px' }}
+                                                    >
+                                                        بدون صورة
+                                                    </span>
+                                                )}
+                                            </TableCell>
+
+                                            <TableCell className="table-content">
+                                                {canditate.name}
+                                            </TableCell>
+
+                                            <TableCell className="table-content">
+                                                {canditate.canditateNickname}
+                                            </TableCell>
+
+                                            <TableCell className="table-content">
+                                                {canditate.partyName}
+                                            </TableCell>
+
+                                            <TableCell className="table-content">
+                                                {canditate.councilName}
+                                            </TableCell>
+
+                                            <TableCell className="table-content">
+                                                {canditate.electoralDistrictName}
+                                            </TableCell>
+
+                                            <TableCell className="table-content">
+                                                {canditate.yearOFelection}
+                                            </TableCell>
+
+                                            <TableCell className="table-content">
+                                                {canditate.ageAtNomination}
+                                            </TableCell>
+
+                                            <TableCell className="table-content">
+                                                {new Date(
+                                                    canditate.dateOfBirth
+                                                ).toLocaleDateString()}
+                                            </TableCell>
+
+                                            <TableCell className="table-content">
+                                                {canditate.nationalId}
+                                            </TableCell>
+
+                                            <TableCell className="table-content">
+                                                {type[canditate.gender]}
+                                            </TableCell>
+
+                                            <TableCell className="table-content">
+                                                {canditate.phoneNumber}
+                                            </TableCell>
+
+                                            <TableCell className="table-content">
+                                                {canditate.email}
+                                            </TableCell>
+
+                                            <TableCell className="table-content">
+                                                {canditate.jobQualification}
+                                            </TableCell>
+
+                                            {/* <TableCell className="table-content">
+                                        {canditate.currentJob}
+                                    </TableCell> */}
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                    <TableRow>
+                                        <TableCell className="text-center" colSpan={16}>
+                                            <h5>لا توجد بيانات</h5>
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+                    {/* <CandidatesList candidates={candidates} /> */}
                 </Box>
             </div>
             <Dialog
@@ -250,6 +474,7 @@ const AllCandidates = () => {
                 </IconButton>
                 <DialogContent>
                     <DialogContent>
+                        {/* {loading && <Loading />} */}
                         <div className="container">
                             <div className="row">
                                 {/* اسم المرشح */}
@@ -480,6 +705,7 @@ const AllCandidates = () => {
                                         value={govId}
                                         onChange={handleGovIdChange}
                                         onClick={fetchGovernate}
+                                        loading
                                     >
                                         <option value="">اختر المحافظة</option>
                                         {governate.map(gov => (
@@ -505,6 +731,7 @@ const AllCandidates = () => {
                                         value={candidateData.electoralDistrictId}
                                         onChange={handleInputChange}
                                         disabled={!govId}
+                                        loading
                                     >
                                         <option value="">اختر الدائرة الانتخابية</option>
                                         {electorals.map(electoral => (

@@ -2,7 +2,6 @@ import Box from '@mui/material/Box';
 import { useCallback, useEffect, useState } from 'react';
 import {
     baseURL,
-    COMMITTEE,
     ELECTION,
     ELECTORAL_DISTRIC,
     GOVERNATE,
@@ -20,7 +19,7 @@ import Paper from '@mui/material/Paper';
 import { Loading } from '../../Components/Loading';
 import { Link } from 'react-router-dom';
 
-const AllCommittee = () => {
+const AllElectoralCenters = () => {
     const [loading, setLoading] = useState(false);
     const [sections, setSections] = useState([]);
     const [sectionsId, setSectionsId] = useState('');
@@ -28,23 +27,17 @@ const AllCommittee = () => {
     const [governate, setGovernate] = useState([]);
     const [electoralsList, setElectoralsList] = useState([]);
     const [electoralId, setElectoralId] = useState('');
+    const [elections, setElections] = useState('');
     const [village, setVillage] = useState([]);
     const [villageId, setVillageId] = useState('');
-    const [elections, setElections] = useState('');
-    const [electionCenterId, setElectionCenterId] = useState('');
-    const [commitee, setCommitee] = useState([]);
 
     const handleGovIdChange = async event => {
         const selectedGovId = event.target.value;
         setGovId(selectedGovId);
         setElectoralId('');
-        setElectoralsList([]);
         setSectionsId('');
         setSections([]);
-        setVillageId('');
-        setVillage([]);
-        setElectionCenterId('');
-        setElections([]);
+        setElectoralsList([]);
 
         if (selectedGovId) {
             await fetchElectorals(selectedGovId);
@@ -91,62 +84,57 @@ const AllCommittee = () => {
         setVillageId(selectedVillageId);
 
         if (!selectedVillageId) {
-            setElections([]);
+            setElections([]); // Reset elections if no village selected
             return;
         }
 
         try {
             setLoading(true);
             const token = localStorage.getItem('token');
-            const response = await axios.get(`${baseURL}/${ELECTION}`, {
+            const response = await axios.get(`${baseURL}/Election/GetAll`, {
                 headers: { Authorization: `Bearer ${token}` },
-                params: { villageId: selectedVillageId },
+                params: {
+                    GovId: govId || 0,
+                    ElectoralId: electoralId || 0,
+                    Sections: sectionsId || 0,
+                    villageId: selectedVillageId,
+                },
             });
-
-            const electionData = response.data.obj || [];
-            setElections(Array.isArray(electionData) ? electionData : []);
+            setElections(response.data.obj);
         } catch (error) {
-            console.error('Error fetching elections:', error);
-            setElections([]);
+            console.error('Error fetching election data:', error);
         } finally {
             setLoading(false);
         }
     };
 
-    const handleElectionCenterChange = event => {
-        const selectedElectionCenterId = event.target.value;
-        setElectionCenterId(selectedElectionCenterId);
-    };
-
-    const fetchCommittee = useCallback(async () => {
+    const fetchElectionCenters = useCallback(async () => {
         const params = {
-            GovId: govId || 0,
-            ElectoralId: electoralId || 0,
-            Sections: sectionsId || 0,
-            villageId: villageId || 0,
-            ElectionCenterId: electionCenterId || 0,
+            govId: govId || undefined,
+            electoralId: electoralId || undefined,
+            sections: sectionsId || undefined,
+            villageId: villageId || undefined,
         };
-
         try {
             setLoading(true);
             const token = localStorage.getItem('token');
-            const response = await axios.get(`${baseURL}/${COMMITTEE}`, {
+            const response = await axios.get(`${baseURL}/${ELECTION}`, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                 },
                 params,
             });
-            setCommitee(response.data.obj);
+            setElections(response.data.obj);
         } catch (error) {
-            console.error('Error fetching committee data:', error);
+            console.error('Error fetching data:', error);
         } finally {
             setLoading(false);
         }
-    }, [govId, electoralId, sectionsId, villageId, electionCenterId]);
+    }, [electoralId, govId, sectionsId, villageId]);
 
     useEffect(() => {
-        fetchCommittee();
-    }, [fetchCommittee]);
+        fetchElectionCenters();
+    }, [fetchElectionCenters]);
 
     const fetchGovernate = async () => {
         if (governate.length > 0) return;
@@ -202,10 +190,10 @@ const AllCommittee = () => {
             <div className="box-container">
                 <Box>
                     <div className="d-flex justify-content-between align-items-center">
-                        <h2 className="">اللجان</h2>
+                        <h2 className="">المقر الانتخابي</h2>
                         <div>
-                            <Link to="/add-committee">
-                                <button className="btn btn-primary">اضافة لجنة</button>
+                            <Link to="/add-electoral-center">
+                                <button className="btn btn-primary">اضافة مقر انتخابي</button>
                             </Link>
                         </div>
                     </div>
@@ -284,31 +272,11 @@ const AllCommittee = () => {
                                         disabled={!sectionsId}
                                     >
                                         <option value="">اختر القرية</option>
-                                        {village.map(v => (
-                                            <option key={v.id} value={v.id}>
-                                                {v.name}
+                                        {village.map(village => (
+                                            <option key={village.id} value={village.id}>
+                                                {village.name}
                                             </option>
                                         ))}
-                                    </select>
-                                </div>
-                                {/* المقر الانتخابي */}
-                                <div className="col-md-3 mb-2">
-                                    <label htmlFor="electionCenterId" className="d-flex mb-1">
-                                        المقر الانتخابي
-                                    </label>
-                                    <select
-                                        className="form-select"
-                                        onChange={handleElectionCenterChange}
-                                        value={electionCenterId}
-                                        disabled={!villageId}
-                                    >
-                                        <option value="">اختر المقر</option>
-                                        {Array.isArray(elections) &&
-                                            elections.map(election => (
-                                                <option key={election.id} value={election.id}>
-                                                    {election.name}
-                                                </option>
-                                            ))}
                                     </select>
                                 </div>
                             </div>
@@ -335,53 +303,44 @@ const AllCommittee = () => {
                                 <TableCell className="table-row" sx={{ fontSize: '18px' }}>
                                     اسم المقر الانتخابي
                                 </TableCell>
-                                <TableCell className="table-row" sx={{ fontSize: '18px' }}>
-                                    اسم اللجنة
-                                </TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
-                            {Array.isArray(commitee) && commitee.length > 0 ? (
-                                commitee.map(c => (
-                                    <TableRow key={c.id}>
+                            {Array.isArray(elections) && elections.length > 0 ? (
+                                elections.map(election => (
+                                    <TableRow key={election.id}>
                                         <TableCell
                                             className="table-content"
                                             sx={{ fontSize: '18px' }}
                                         >
-                                            {c.governate_Name}
+                                            {election.governate_Name}
                                         </TableCell>
 
                                         <TableCell
                                             className="table-content"
                                             sx={{ fontSize: '18px' }}
                                         >
-                                            {c.electroal_District_Name}
+                                            {election.electroal_District_Name}
                                         </TableCell>
 
                                         <TableCell
                                             className="table-content"
                                             sx={{ fontSize: '18px' }}
                                         >
-                                            {c.incorpated_Section_Name}
+                                            {election.incorpated_Section_Name}
                                         </TableCell>
 
                                         <TableCell
                                             className="table-content"
                                             sx={{ fontSize: '18px' }}
                                         >
-                                            {c.village_Name}
+                                            {election.village_Name}
                                         </TableCell>
                                         <TableCell
                                             className="table-content"
                                             sx={{ fontSize: '18px' }}
                                         >
-                                            {c.election_Center}
-                                        </TableCell>
-                                        <TableCell
-                                            className="table-content"
-                                            sx={{ fontSize: '18px' }}
-                                        >
-                                            {c.name}
+                                            {election.name}
                                         </TableCell>
                                     </TableRow>
                                 ))
@@ -400,4 +359,4 @@ const AllCommittee = () => {
     );
 };
 
-export default AllCommittee;
+export default AllElectoralCenters;

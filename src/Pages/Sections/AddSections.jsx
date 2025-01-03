@@ -15,11 +15,11 @@ const AddSections = () => {
     const [govId, setGovId] = useState('');
     const [governate, setGovernate] = useState([]);
     const [electorals, setElectorals] = useState([]);
-    const navigate = useNavigate();
     const [electoralDistrictId, setElectoralDistrictId] = useState('');
     const [sections, setSections] = useState(['']);
     const [message, setMessage] = useState('');
-
+    const navigate = useNavigate();
+    
     const handleSubmit = async e => {
         e.preventDefault();
 

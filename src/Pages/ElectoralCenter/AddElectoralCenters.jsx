@@ -2,8 +2,7 @@ import { useState } from 'react';
 import axios from 'axios';
 import {
     baseURL,
-    COMMITTEE_CREATE,
-    ELECTION,
+    ELECTION_CREATE,
     ELECTORAL_DISTRIC,
     GOVERNATE,
     IncorporatedSections,
@@ -14,7 +13,7 @@ import Swal from 'sweetalert2';
 import Box from '@mui/material/Box';
 import { Loading } from '../../Components/Loading';
 
-const AddCommittee = () => {
+const AddElectoralCenters = () => {
     const [loading, setLoading] = useState(false);
     const [govId, setGovId] = useState('');
     const [governate, setGovernate] = useState([]);
@@ -25,11 +24,9 @@ const AddCommittee = () => {
     const [sectionsId, setSectionsId] = useState('');
     const [village, setVillage] = useState(['']);
     const [villageId, setVillageId] = useState('');
-    const [elections, setElections] = useState(['']);
-    const [electionCenterId, setElectionCenterId] = useState('');
 
+    const [elections, setElections] = useState(['']);
     const [message, setMessage] = useState('');
-    const [commitee, setCommitee] = useState(['']);
 
     const handleSubmit = async e => {
         e.preventDefault();
@@ -38,8 +35,7 @@ const AddCommittee = () => {
             !electoralDistrictId ||
             !sectionsId ||
             !villageId ||
-            !elections ||
-            commitee.some(c => !c.trim())
+            elections.some(election => !election.trim())
         ) {
             setMessage('يجب ملء جميع الحقول.');
             return;
@@ -52,12 +48,11 @@ const AddCommittee = () => {
                 governateId: parseInt(govId, 10),
                 electoralDistrictId: parseInt(electoralDistrictId, 10),
                 sectionsId: parseInt(sectionsId, 10),
-                villageId: parseInt(villageId, 10),
-                id: parseInt(electionCenterId, 10),
-                data: commitee.filter(c => c.trim() !== ''),
+                id: parseInt(villageId, 10),
+                data: elections.filter(e => e.trim() !== ''),
             };
 
-            const response = await axios.post(`${baseURL}/${COMMITTEE_CREATE}`, payload, {
+            const response = await axios.post(`${baseURL}/${ELECTION_CREATE}`, payload, {
                 headers: {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${token}`,
@@ -65,7 +60,7 @@ const AddCommittee = () => {
             });
 
             if (response.data.isSuccess) {
-                navigate('/committee');
+                navigate('/electoral-center');
                 Swal.fire({
                     icon: 'success',
                     text: response.data.message,
@@ -74,8 +69,7 @@ const AddCommittee = () => {
                 setElectoralDistrictId('');
                 setSectionsId('');
                 setVillage('');
-                setElections('');
-                setCommitee(['']); // Reset committee inputs
+                setElections(['']);
             } else {
                 setMessage(response.data.message || 'حدث خطأ غير متوقع.');
             }
@@ -92,21 +86,16 @@ const AddCommittee = () => {
         setElectoralDistrictId('');
         setSectionsId('');
         setVillageId('');
-        setElectionCenterId('');
-        setElectorals([]); // Clear dependent dropdown options
-        setSections([]);
-        setVillage([]);
-        setElections([]);
     };
 
-    const handleCommitteeChange = (index, value) => {
-        const updatedCommitee = [...commitee];
-        updatedCommitee[index] = value;
-        setCommitee(updatedCommitee);
+    const handleElectionsChange = (index, value) => {
+        const updatedElections = [...elections];
+        updatedElections[index] = value;
+        setElections(updatedElections);
     };
 
-    const addCommitteeField = () => {
-        setCommitee([...commitee, '']); // Add a new empty input field
+    const addElectionsField = () => {
+        setElections([...elections, '']);
     };
 
     const handleElectoralsChange = event => {
@@ -117,9 +106,6 @@ const AddCommittee = () => {
     };
     const handleVillageChange = event => {
         setVillageId(event.target.value);
-    };
-    const handleElectionChange = event => {
-        setElectionCenterId(event.target.value);
     };
 
     const fetchGovernate = async () => {
@@ -196,35 +182,15 @@ const AddCommittee = () => {
         }
     };
 
-    const fetchElectionCenter = async () => {
-        if (!govId || !electoralDistrictId || !sectionsId || !villageId) return;
-
-        try {
-            setLoading(true);
-            const token = localStorage.getItem('token');
-            const response = await axios.get(
-                `${baseURL}/${ELECTION}?govId=${govId}&electoralDistrictId=${electoralDistrictId}&sectionsId=${sectionsId}&villageId=${villageId}`,
-                {
-                    headers: { Authorization: `Bearer ${token}` },
-                }
-            );
-            setElections(Array.isArray(response.data.obj) ? response.data.obj : []);
-        } catch (error) {
-            console.error('Error fetching elections:', error);
-            setCommitee([]);
-        } finally {
-            setLoading(false);
-        }
-    };
     return (
         <div>
             <div className="box-container">
                 {loading && <Loading />}
                 <Box>
                     <div className="d-flex justify-content-between align-items-center">
-                        <h2 className="">اضافة لجنة</h2>
+                        <h2 className="">اضافة مقر انتخابي</h2>
                         <div>
-                            <Link to="/committee">
+                            <Link to="/electoral-center">
                                 <button className="btn btn-primary">رجوع</button>
                             </Link>
                         </div>
@@ -320,56 +286,33 @@ const AddCommittee = () => {
                                     ))}
                             </select>
                         </div>
-                        {/*  اسم المقر الانتخابي */}
-                        <div className="col-md-3 mb-2">
-                            <label htmlFor="electionCenterId" className="form-label mb-1">
-                                المقر الانتخابي
-                            </label>
-                            <select
-                                className="form-select"
-                                onChange={handleElectionChange}
-                                value={electionCenterId}
-                                disabled={!villageId}
-                                onClick={fetchElectionCenter}
-                            >
-                                <option value="">اختر المقر</option>
-                                {Array.isArray(village) &&
-                                    elections.map((election, index) => (
-                                        <option key={election.id || index} value={election.id}>
-                                            {election.name}
-                                        </option>
-                                    ))}
-                            </select>
-                        </div>
 
-                        {/* اسم اللجنة */}
+                        {/* اسم المقر الانتخابي */}
                         <div className="row">
-                            {commitee.map((commitees, index) => (
+                            {elections.map((election, index) => (
                                 <div className="col-md-3 mb-2" key={index}>
                                     <label
-                                        htmlFor={`commitees-${index}`}
+                                        htmlFor={`election-${index}`}
                                         className="form-label mb-1"
                                     >
-                                        اسم اللجنة {index + 1}
+                                        اسم المقر الانتخابي {index + 1}
                                     </label>
                                     <input
                                         type="text"
                                         className="form-control"
-                                        id={`commitees-${index}`}
-                                        value={commitees}
-                                        onChange={e => handleCommitteeChange(index, e.target.value)}
+                                        id={`election-${index}`}
+                                        value={election}
+                                        onChange={e => handleElectionsChange(index, e.target.value)}
                                     />
                                 </div>
                             ))}
-
-                            {/* إضافة زر إضافة لجنة جديدة */}
                             <div className="col-md-12 my-2">
                                 <button
                                     type="button"
                                     className="btn btn-secondary"
-                                    onClick={addCommitteeField}
+                                    onClick={addElectionsField}
                                 >
-                                    إضافة لجنة جديدة
+                                    إضافة مقر جديدة
                                 </button>
                             </div>
                         </div>
@@ -388,4 +331,4 @@ const AddCommittee = () => {
     );
 };
 
-export default AddCommittee;
+export default AddElectoralCenters;

@@ -8,6 +8,7 @@ import {
     GOVERNATE,
     IncorporatedSections,
     Village,
+    VOTERS,
 } from '../../Components/Api';
 import axios from 'axios';
 import Table from '@mui/material/Table';
@@ -19,8 +20,10 @@ import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
 import { Loading } from '../../Components/Loading';
 import { Link } from 'react-router-dom';
+import CheckIcon from '@mui/icons-material/Check';
+import CloseIcon from '@mui/icons-material/Close';
 
-const AllCommittee = () => {
+const AllVoter = () => {
     const [loading, setLoading] = useState(false);
     const [sections, setSections] = useState([]);
     const [sectionsId, setSectionsId] = useState('');
@@ -33,6 +36,8 @@ const AllCommittee = () => {
     const [elections, setElections] = useState('');
     const [electionCenterId, setElectionCenterId] = useState('');
     const [commitee, setCommitee] = useState([]);
+    const [CommId, setCommId] = useState('');
+    const [voters, setVoters] = useState([]);
 
     const handleGovIdChange = async event => {
         const selectedGovId = event.target.value;
@@ -45,6 +50,8 @@ const AllCommittee = () => {
         setVillage([]);
         setElectionCenterId('');
         setElections([]);
+        setCommId('');
+        setCommitee([]);
 
         if (selectedGovId) {
             await fetchElectorals(selectedGovId);
@@ -59,6 +66,32 @@ const AllCommittee = () => {
 
         if (selectedElectoralId) {
             await fetchSections(selectedElectoralId);
+        }
+    };
+
+    const handleCommitteeChange = async event => {
+        const selectedCommId = event.target.value;
+        setCommId(selectedCommId);
+
+        if (!selectedCommId) {
+            setCommitee([]);
+            return;
+        }
+
+        try {
+            setLoading(true);
+            const token = localStorage.getItem('token');
+            const response = await axios.get(`${baseURL}/${COMMITTEE}`, {
+                headers: { Authorization: `Bearer ${token}` },
+                params: { electionCenterId: selectedCommId },
+            });
+            const committeeData = response.data.obj || [];
+            setCommitee(Array.isArray(committeeData) ? committeeData : []);
+            console.log('Committee Data:', committeeData);
+        } catch (error) {
+            console.error('Error fetching committee:', error);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -113,40 +146,53 @@ const AllCommittee = () => {
         }
     };
 
-    const handleElectionCenterChange = event => {
+    const handleElectionCenterChange = async event => {
         const selectedElectionCenterId = event.target.value;
         setElectionCenterId(selectedElectionCenterId);
+        setCommId(''); // إعادة التعيين فقط إذا كان منطقيًا
+
+        if (selectedElectionCenterId) {
+            await fetchComittee(selectedElectionCenterId);
+        } else {
+            setCommitee([]); // إعادة تعيين اللجان إذا لم يتم اختيار مقر
+        }
     };
 
-    const fetchCommittee = useCallback(async () => {
+    const fetchVoter = useCallback(async () => {
         const params = {
             GovId: govId || 0,
             ElectoralId: electoralId || 0,
             Sections: sectionsId || 0,
             villageId: villageId || 0,
             ElectionCenterId: electionCenterId || 0,
+            CommId: CommId || 0,
         };
 
         try {
             setLoading(true);
             const token = localStorage.getItem('token');
-            const response = await axios.get(`${baseURL}/${COMMITTEE}`, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
+            const response = await axios.get(`${baseURL}/${VOTERS}`, {
+                headers: { Authorization: `Bearer ${token}` },
                 params,
             });
-            setCommitee(response.data.obj);
+
+            if (response.data && Array.isArray(response.data.obj)) {
+                setVoters(response.data.obj);
+            } else {
+                console.error('Invalid response format:', response.data);
+                setVoters([]);
+            }
         } catch (error) {
-            console.error('Error fetching committee data:', error);
+            console.error('Error fetching voter data:', error);
+            setVoters([]);
         } finally {
             setLoading(false);
         }
-    }, [govId, electoralId, sectionsId, villageId, electionCenterId]);
+    }, [govId, electoralId, sectionsId, villageId, electionCenterId, CommId]);
 
     useEffect(() => {
-        fetchCommittee();
-    }, [fetchCommittee]);
+        fetchVoter();
+    }, [fetchVoter]);
 
     const fetchGovernate = async () => {
         if (governate.length > 0) return;
@@ -196,16 +242,35 @@ const AllCommittee = () => {
         }
     };
 
+    const fetchComittee = async selectedElectionCenterId => {
+        try {
+            setLoading(true);
+            const token = localStorage.getItem('token');
+            const response = await axios.get(`${baseURL}/${COMMITTEE}`, {
+                headers: { Authorization: `Bearer ${token}` },
+                params: { electionCenterId: selectedElectionCenterId },
+            });
+            console.log('Committee Response:', response.data);
+            const data = response.data.obj || [];
+            setCommitee(Array.isArray(data) ? data : []);
+        } catch (error) {
+            console.error('Error fetching committee:', error);
+            setCommitee([]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <div>
             {loading && <Loading />}
             <div className="box-container">
                 <Box>
                     <div className="d-flex justify-content-between align-items-center">
-                        <h2 className="">اللجان</h2>
+                        <h2 className="">الناخبين</h2>
                         <div>
-                            <Link to="/add-committee">
-                                <button className="btn btn-primary">اضافة لجنة</button>
+                            <Link to="/add-voter">
+                                <button className="btn btn-primary">اضافة ناخب</button>
                             </Link>
                         </div>
                     </div>
@@ -311,6 +376,26 @@ const AllCommittee = () => {
                                             ))}
                                     </select>
                                 </div>
+                                {/*  اللجنة */}
+                                <div className="col-md-3 mb-2">
+                                    <label htmlFor="CommId" className="d-flex mb-1">
+                                        اللجنة
+                                    </label>
+                                    <select
+                                        className="form-select"
+                                        onChange={handleCommitteeChange}
+                                        value={CommId}
+                                        disabled={!electionCenterId}
+                                    >
+                                        <option value="">اختر اللجنة</option>
+                                        {Array.isArray(commitee) &&
+                                            commitee.map(committee => (
+                                                <option key={committee.id} value={committee.id}>
+                                                    {committee.name}
+                                                </option>
+                                            ))}
+                                    </select>
+                                </div>
                             </div>
                         </div>
                     </form>
@@ -321,74 +406,37 @@ const AllCommittee = () => {
                         <TableHead className="table-head-style">
                             <TableRow>
                                 <TableCell className="table-row" sx={{ fontSize: '18px' }}>
-                                    اسم المحافظة
+                                    الاسم
                                 </TableCell>
                                 <TableCell className="table-row" sx={{ fontSize: '18px' }}>
-                                    اسم الدائرة الانتخابية
+                                    تم الانتخاب
                                 </TableCell>
                                 <TableCell className="table-row" sx={{ fontSize: '18px' }}>
-                                    اسم القسم
-                                </TableCell>
-                                <TableCell className="table-row" sx={{ fontSize: '18px' }}>
-                                    اسم القرية
-                                </TableCell>
-                                <TableCell className="table-row" sx={{ fontSize: '18px' }}>
-                                    اسم المقر الانتخابي
-                                </TableCell>
-                                <TableCell className="table-row" sx={{ fontSize: '18px' }}>
-                                    اسم اللجنة
+                                    تاريخ الانتخاب
                                 </TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
-                            {Array.isArray(commitee) && commitee.length > 0 ? (
-                                commitee.map(c => (
+                            {Array.isArray(voters) && voters.length > 0 ? (
+                                voters.map(c => (
                                     <TableRow key={c.id}>
-                                        <TableCell
-                                            className="table-content"
-                                            sx={{ fontSize: '18px' }}
-                                        >
-                                            {c.governate_Name}
+                                        <TableCell className="table-content">{c.name}</TableCell>
+                                        <TableCell className="table-content">
+                                            {c.hasVoted ? (
+                                                <CheckIcon color="success" />
+                                            ) : (
+                                                <CloseIcon color="error" />
+                                            )}
                                         </TableCell>
-
-                                        <TableCell
-                                            className="table-content"
-                                            sx={{ fontSize: '18px' }}
-                                        >
-                                            {c.electroal_District_Name}
-                                        </TableCell>
-
-                                        <TableCell
-                                            className="table-content"
-                                            sx={{ fontSize: '18px' }}
-                                        >
-                                            {c.incorpated_Section_Name}
-                                        </TableCell>
-
-                                        <TableCell
-                                            className="table-content"
-                                            sx={{ fontSize: '18px' }}
-                                        >
-                                            {c.village_Name}
-                                        </TableCell>
-                                        <TableCell
-                                            className="table-content"
-                                            sx={{ fontSize: '18px' }}
-                                        >
-                                            {c.election_Center}
-                                        </TableCell>
-                                        <TableCell
-                                            className="table-content"
-                                            sx={{ fontSize: '18px' }}
-                                        >
-                                            {c.name}
+                                        <TableCell className="table-content">
+                                            {c.votedAt ? c.votedAt : '_'}
                                         </TableCell>
                                     </TableRow>
                                 ))
                             ) : (
                                 <TableRow>
-                                    <TableCell className="text-center" colSpan={8}>
-                                        <h5>لا توجد بيانات</h5>
+                                    <TableCell className="text-center" colSpan={3}>
+                                        <h5>لا توجد بيانات للجنة</h5>
                                     </TableCell>
                                 </TableRow>
                             )}
@@ -400,4 +448,4 @@ const AllCommittee = () => {
     );
 };
 
-export default AllCommittee;
+export default AllVoter;

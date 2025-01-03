@@ -4,6 +4,7 @@ export const IMG_URL = 'http://electionapp.runasp.net';
 
 // Canditates/GetAll
 export const CANDITATES = 'Canditates/GetAll';
+export const ADD_CANDITATES = 'Auth/AddCanditate';
 
 //LOGIN
 export const LOGIN = 'Auth/Login';
@@ -24,3 +25,15 @@ export const Village_CREATE = 'Village/CreateVillage';
 // IncorporatedSections
 export const IncorporatedSections = 'IncorporatedSections/GetAll';
 export const IncorporatedSections_CREATE = 'IncorporatedSections/CreateincorporatedSection';
+
+// ELECTION
+export const ELECTION = 'Election/GetAll';
+export const ELECTION_CREATE = 'Election/CreateElectionCenter';
+
+// Committee
+export const COMMITTEE = 'Committee/GetAll';
+export const COMMITTEE_CREATE = 'Committee/CreateCommittee';
+
+// Voters
+export const VOTERS = 'Voter/GetAll';
+export const VOTERS_CREATE = 'Auth/AddVoter';
